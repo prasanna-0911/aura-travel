@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* Custom CSS Variables for Aura Travel */
+:root {
+  /* Core Color Scheme */
+  --color-midnight-slate: #0F172A;
+  --color-cloud-pearl: #F8FAFC;
+  --color-eucalyptus-mist: #4FA3A5;
+  --color-sandstone-beige: #E6E1D8;
+  --color-soft-ember: #E07A5F;
+  
+  /* Typography */
+  --font-heading: 'DM Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-cloud-pearl);
+  color: var(--color-midnight-slate);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Custom Tailwind Theme Extensions */
+@theme {
+  --color-midnight: #0F172A;
+  --color-pearl: #F8FAFC;
+  --color-eucalyptus: #4FA3A5;
+  --color-sandstone: #E6E1D8;
+  --color-ember: #E07A5F;
+  --color-eucalyptus-dark: #3D8A8C;
+  --color-eucalyptus-light: #6BB8BA;
+}
+
+/* Subtle gradient for hero sections */
+.hero-gradient {
+  background: linear-gradient(135deg, #F8FAFC 0%, #E6F2F2 100%);
+}
+
+/* Animation utilities */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+/* Staggered animation delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }

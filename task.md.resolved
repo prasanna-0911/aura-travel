@@ -1,0 +1,22 @@
+# Phase 3 Tracking Re-Architecture (BoT-SORT)
+
+## Setup
+- [x] Install `ultralytics` package
+- [ ] Verify `yolov8n.pt` downloads correctly
+
+## Multi-Camera Tracker Updates
+- [x] Replace [PersonDetector](file:///e:/MyWebProject/persona-detection-main/phase1_detection/person_detector.py#24-344) with native `YOLO('yolov8n.pt')`
+- [x] Replace `DeepSORTTracker` calls with `model.track(..., tracker='botsort.yaml')`
+- [x] Extract features from stable BoT-SORT bounding boxes using [ReIDNetwork](file:///e:/MyWebProject/persona-detection-main/phase2_reid/models/reid_net.py#18-87)
+- [x] Link stable BoT-SORT track IDs to global ID via Gallery
+
+## Cleanup
+- [x] Delete broken `phase3_tracking` custom DeepSORT modules
+
+## Enforce Local Track Isolation
+- [x] Prevent [GlobalPersonGallery](file:///e:/MyWebProject/persona-detection-main/multi_camera_tracker.py#117-273) from merging two active local IDs from the same camera into the same Global ID
+
+
+
+## Verification
+- [x] Run a quick import/smoke test to confirm no crashes
