@@ -21,9 +21,9 @@ import {
   Settings,
   Info
 } from 'lucide-react';
-import { 
-  LiveTripState, 
-  createLiveTripState, 
+import {
+  LiveTripState,
+  createLiveTripState,
   getCurrentActivity,
   getNextActivity,
   advanceToNextActivity,
@@ -39,6 +39,7 @@ import {
 import { generateItinerary, GeneratedItinerary } from '@/services/weaverService';
 import { extractFromQuery } from '@/utils/nlp';
 import { cn } from '@/utils/cn';
+import { toast } from '@/components/notifications/Toast';
 
 // Demo itinerary queries for quick start
 const DEMO_QUERIES = [
@@ -140,12 +141,14 @@ export function LiveTrip() {
   // Accept suggestion
   const acceptSuggestion = (suggestion: ConflictSuggestion) => {
     if (!tripState) return;
-    
+
     const newState = replaceActivityWithSuggestion(tripState, suggestion);
     setTripState(newState);
     setShowNotification(false);
     setConflictResult(null);
-    
+
+    toast.success('Activity Replaced', `Switched to ${suggestion.suggestedActivity.name}`);
+
     if (notificationTimeout) {
       clearTimeout(notificationTimeout);
     }
@@ -155,7 +158,9 @@ export function LiveTrip() {
   const declineSuggestion = () => {
     setShowNotification(false);
     setConflictResult(null);
-    
+
+    toast.info('Kept Original Plan', 'Your itinerary remains unchanged.');
+
     if (notificationTimeout) {
       clearTimeout(notificationTimeout);
     }
@@ -165,7 +170,12 @@ export function LiveTrip() {
   const completeActivity = () => {
     if (!tripState) return;
     const newState = advanceToNextActivity(tripState);
+    const completedName = getCurrentActivity(tripState)?.name;
     setTripState(newState);
+
+    if (completedName) {
+      toast.success('Activity Completed', `"${completedName}" marked as done!`);
+    }
   };
 
   // End trip

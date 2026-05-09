@@ -82,3 +82,83 @@ h1, h2, h3, h4, h5, h6 {
 .delay-300 { animation-delay: 300ms; }
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
+
+/* Print Styles for PDF Export */
+@media print {
+  /* Hide non-essential elements */
+  nav,
+  header,
+  footer,
+  .no-print,
+  button,
+  .navbar,
+  .footer,
+  .sidebar {
+    display: none !important;
+  }
+
+  /* Reset background and spacing for print */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  .print-break-avoid {
+    break-inside: avoid;
+  }
+
+  .print-break-before {
+    break-before: page;
+  }
+
+  /* Make main content full width */
+  main,
+  section,
+  article {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Ensure cards don't break across pages */
+  .rounded-2xl,
+  .bg-white {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+
+  /* Ensure images print properly */
+  img {
+    max-width: 100%;
+    page-break-inside: avoid;
+  }
+
+  /* Hide interactive elements like tabs */
+  [class*="tab-"],
+  [class*="Tabs"] {
+    display: none !important;
+  }
+
+  /* Show only itinerary tab content when printing */
+  #itinerary-content {
+    display: block !important;
+  }
+
+  /* Header for printed pages */
+  .print-header {
+    display: block !important;
+    text-align: center;
+    padding: 20pt 0;
+    border-bottom: 2pt solid #4FA3A5;
+    margin-bottom: 20pt;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+}

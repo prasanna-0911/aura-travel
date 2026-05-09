@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { 
-  Sparkles, 
-  Send, 
-  Loader2, 
-  MapPin, 
-  Clock, 
+import {
+  Sparkles,
+  Send,
+  Loader2,
+  MapPin,
+  Clock,
   Tag,
   Lightbulb,
   ChevronRight
@@ -13,6 +13,7 @@ import { extractFromQuery, EXAMPLE_QUERIES, getTagColor, NLPResult } from '@/uti
 import { generateItinerary, GeneratedItinerary } from '@/services/weaverService';
 import { cn } from '@/utils/cn';
 import { ItineraryResults } from '@/components/weaver/ItineraryResults';
+import { toast } from '@/components/notifications/Toast';
 
 export function Weaver() {
   const [query, setQuery] = useState('');
@@ -53,8 +54,13 @@ export function Weaver() {
         const generatedItinerary = await generateItinerary(result);
         setItinerary(generatedItinerary);
         setShowResults(true);
+        toast.success(
+          'Itinerary Ready!',
+          `${generatedItinerary.destination} - ${generatedItinerary.days.length} days with ${generatedItinerary.days.reduce((a, d) => a + d.activities.length, 0)} activities`
+        );
       } catch (error) {
         console.error('Error generating itinerary:', error);
+        toast.error('Generation Failed', 'Could not create itinerary. Please try again.');
       } finally {
         setIsGenerating(false);
       }

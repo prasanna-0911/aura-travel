@@ -199,6 +199,25 @@ export function Bookings() {
   };
   
   // Reset booking flow
+  const downloadTicket = () => {
+    window.print();
+  };
+
+  const shareDetails = () => {
+    if (navigator.share && confirmedBooking) {
+      navigator.share({
+        title: `Trip to ${confirmedBooking.destination}`,
+        text: `I just booked a trip to ${confirmedBooking.destination}! Confirmation: ${confirmedBooking.id}`,
+        url: window.location.href
+      }).catch(console.error);
+    } else {
+      const text = `My Aura Travel Booking - Trip to ${confirmedBooking?.destination}!\nConfirmation: ${confirmedBooking?.id}\nTotal: ₹${confirmedBooking?.totalCost.toLocaleString()}`;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Booking details copied to clipboard!');
+      });
+    }
+  };
+
   const resetBooking = () => {
     setStep('search');
     setSelectedFlight(null);
@@ -1131,11 +1150,11 @@ export function Bookings() {
               
               {/* Actions */}
               <div className="p-6 bg-sandstone/10 border-t border-sandstone/50 flex flex-col sm:flex-row gap-3">
-                <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-sandstone/50 rounded-xl text-midnight font-medium hover:bg-sandstone/20 transition-colors">
+                <button onClick={downloadTicket} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-sandstone/50 rounded-xl text-midnight font-medium hover:bg-sandstone/20 transition-colors">
                   <Download className="w-4 h-4" />
                   Download Ticket
                 </button>
-                <button className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-sandstone/50 rounded-xl text-midnight font-medium hover:bg-sandstone/20 transition-colors">
+                <button onClick={shareDetails} className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white border border-sandstone/50 rounded-xl text-midnight font-medium hover:bg-sandstone/20 transition-colors">
                   <Share2 className="w-4 h-4" />
                   Share Details
                 </button>

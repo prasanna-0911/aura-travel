@@ -19,7 +19,9 @@ import {
   Share2,
   Download,
   Play,
-  Navigation
+  Navigation,
+  Check,
+  Copy
 } from 'lucide-react';
 import { GeneratedItinerary } from '@/services/weaverService';
 import { startTrip } from '@/services/tripService';
@@ -65,8 +67,31 @@ export function ItineraryResults({ itinerary, onReset }: ItineraryResultsProps) 
     void startTrip(itinerary);
   };
 
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = () => {
+    const shareData = {
+      title: `${itinerary.duration} Days in ${itinerary.destination}`,
+      text: `Check out my ${itinerary.duration}-day ${itinerary.destination} itinerary with ${itinerary.days.reduce((acc, d) => acc + d.activities.length, 0)} activities!`,
+      url: window.location.href
+    };
+
+    if (navigator.share) {
+      navigator.share(shareData).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    window.print();
+  };
+
   return (
-    <div className="min-h-screen bg-pearl">
+    <div className="min-h-screen bg-pearl print:bg-white">
       {/* Header */}
       <div className="bg-midnight text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -114,12 +139,11 @@ export function ItineraryResults({ itinerary, onReset }: ItineraryResultsProps) 
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3">
-              <button className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors" title="Share">
-                <Share2 className="w-5 h-5" />
+              <button onClick={handleShare} className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors" title="Share">
+                {copied ? <Check className="w-5 h-5 text-green-400" /> : <Share2 className="w-5 h-5" />}
               </button>
-              <button className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors" title="Download PDF">
+              <button onClick={handleDownloadPDF} className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors" title="Download PDF">
                 <Download className="w-5 h-5" />
-              </button>
               <Link
                 to="/live-trip"
                 onClick={handleStartTrip}

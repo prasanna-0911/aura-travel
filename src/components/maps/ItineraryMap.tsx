@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as L from 'leaflet';
 import { MapContainer, Marker, Polyline, Popup, TileLayer } from 'react-leaflet';
-import { MapPin, Navigation, Clock, IndianRupee } from 'lucide-react';
+import { MapPin, Navigation, Clock, IndianRupee, Loader2 } from 'lucide-react';
 import { Activity } from '@/data';
 
 interface ItineraryMapProps {
@@ -12,6 +12,11 @@ interface ItineraryMapProps {
   }[];
   destination: string;
   day?: number;
+}
+
+interface RouteSegment {
+  distance: number; // in km
+  duration: number; // in minutes
 }
 
 const DESTINATION_CENTERS: Record<string, [number, number]> = {
@@ -43,7 +48,8 @@ function createNumberIcon(index: number, category: string) {
   });
 }
 
-function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+// Fallback haversine distance for when OSRM fails
+function calculateHaversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const radius = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
@@ -54,17 +60,67 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return radius * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
+// Fetch road distance via OSRM free API
+async function fetchRouteDistance(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): Promise<RouteSegment> {
+  const url = `https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`;
+  const response = await fetch(url);
+  const data = await response.json();
+
+  if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+    const route = data.routes[0];
+    return {
+      distance: route.distance / 1000, // convert meters to km
+      duration: route.duration / 60   // convert seconds to minutes
+    };
+  }
+
+  // Fallback to haversine if OSRM fails
+  const straightLineDist = calculateHaversineDistance(lat1, lng1, lat2, lng2);
+  return {
+    distance: straightLineDist,
+    duration: straightLineDist * 3 // rough estimate: ~3 min per km
+  };
+}
+
 export function ItineraryMap({ activities, destination, day }: ItineraryMapProps) {
   const routePoints = useMemo<[number, number][]>(() => (
     activities.map((item) => [item.activity.location.lat, item.activity.location.lng])
   ), [activities]);
 
   const center = routePoints[0] || DESTINATION_CENTERS[destination] || DESTINATION_CENTERS.Goa;
-  const totalDistance = routePoints.reduce((sum, point, index) => {
-    if (index === 0) return sum;
-    const previous = routePoints[index - 1];
-    return sum + calculateDistance(previous[0], previous[1], point[0], point[1]);
-  }, 0);
+
+  const [routeSegments, setRouteSegments] = useState<RouteSegment[]>([]);
+  const [isLoadingRoutes, setIsLoadingRoutes] = useState(false);
+
+  useEffect(() => {
+    if (routePoints.length < 2) return;
+
+    let cancelled = false;
+    setIsLoadingRoutes(true);
+
+    async function fetchAllRoutes() {
+      const segments: RouteSegment[] = [];
+      for (let i = 1; i < routePoints.length; i++) {
+        const [lat1, lng1] = routePoints[i - 1];
+        const [lat2, lng2] = routePoints[i];
+        const segment = await fetchRouteDistance(lat1, lng1, lat2, lng2);
+        if (!cancelled) {
+          segments.push(segment);
+          setRouteSegments([...segments]);
+        }
+      }
+      if (!cancelled) setIsLoadingRoutes(false);
+    }
+
+    fetchAllRoutes();
+    return () => { cancelled = true; };
+  }, [routePoints]);
+
+  const totalDistance = routeSegments.reduce((sum, s) => sum + s.distance, 0);
+  const totalDuration = routeSegments.reduce((sum, s) => sum + s.duration, 0);
 
   return (
     <div className="bg-white rounded-2xl border border-sandstone/50 overflow-hidden">
@@ -77,8 +133,15 @@ export function ItineraryMap({ activities, destination, day }: ItineraryMapProps
             <h3 className="font-semibold text-midnight" style={{ fontFamily: 'var(--font-heading)' }}>
               {day ? `Day ${day} Route` : 'Trip Route'}
             </h3>
-            <p className="text-sm text-midnight/60">
-              {activities.length} stops | ~{totalDistance.toFixed(1)} km
+            <p className="text-sm text-midnight/60 flex items-center gap-1">
+              {activities.length} stops
+              {isLoadingRoutes ? (
+                <>
+                  | <Loader2 className="w-3 h-3 animate-spin" /> Calculating routes...
+                </>
+              ) : totalDistance > 0 ? (
+                <> | {totalDistance.toFixed(1)} km | ~{Math.round(totalDuration)} min</>
+              ) : null}
             </p>
           </div>
         </div>
@@ -122,11 +185,16 @@ export function ItineraryMap({ activities, destination, day }: ItineraryMapProps
               <div className="w-7 h-7 rounded-full bg-eucalyptus text-white flex items-center justify-center text-xs font-bold">
                 {index + 1}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-midnight truncate">{item.activity.name}</p>
                 <p className="text-xs text-midnight/50 flex items-center gap-1">
                   <MapPin className="w-3 h-3" />
                   {item.activity.location.address.split(',')[0]}
+                  {routeSegments[index - 1] && (
+                    <span className="text-eucalyptus ml-1">
+                      • {routeSegments[index - 1].distance.toFixed(1)} km, ~{Math.round(routeSegments[index - 1].duration)} min
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
