@@ -144,6 +144,7 @@ export function ItineraryResults({ itinerary, onReset }: ItineraryResultsProps) 
               </button>
               <button onClick={handleDownloadPDF} className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors" title="Download PDF">
                 <Download className="w-5 h-5" />
+              </button>
               <Link
                 to="/live-trip"
                 onClick={handleStartTrip}
