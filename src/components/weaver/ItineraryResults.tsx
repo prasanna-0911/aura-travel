@@ -20,8 +20,7 @@ import {
   Download,
   Play,
   Navigation,
-  Check,
-  Copy
+  Check
 } from 'lucide-react';
 import { GeneratedItinerary } from '@/services/weaverService';
 import { startTrip } from '@/services/tripService';
