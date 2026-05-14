@@ -43,6 +43,7 @@ import {
   TripBooking
 } from '@/services/bookingService';
 import { cn } from '@/utils/cn';
+import { toast } from '@/components/notifications/Toast';
 
 // Booking steps
 type BookingStep = 'search' | 'flights' | 'hotels' | 'review' | 'payment' | 'confirmation';
@@ -85,6 +86,9 @@ export function Bookings() {
   const [isSearching, setIsSearching] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const pastBookings = getBookings();
+
+  // Form validation state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
   // Filter states for flights
   const [flightSortBy, setFlightSortBy] = useState<'price' | 'duration' | 'departure'>('price');
@@ -179,11 +183,30 @@ export function Bookings() {
   
   // Handle payment
   const handlePayment = async () => {
-    if (!contactDetails.name || !contactDetails.email || !contactDetails.phone) {
-      alert('Please fill in all contact details');
+    // Validate form
+    const errors: Record<string, string> = {};
+    if (!contactDetails.name.trim()) {
+      errors.name = 'Full name is required';
+    } else if (contactDetails.name.trim().length < 2) {
+      errors.name = 'Name must be at least 2 characters';
+    }
+    if (!contactDetails.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactDetails.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+    if (!contactDetails.phone.trim()) {
+      errors.phone = 'Phone number is required';
+    } else if (!/^[+]?[\d\s-]{10,}$/.test(contactDetails.phone.replace(/\s/g, ''))) {
+      errors.phone = 'Please enter a valid phone number';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      toast.error('Validation Error', 'Please check the form fields.');
       return;
     }
-    
+
     const destName = destination === 'Kullu (Manali)' ? 'Manali' : destination;
     const booking = createTripBooking(
       destName,
@@ -192,7 +215,7 @@ export function Bookings() {
       contactDetails,
       paymentMethod
     );
-    
+
     const savedBooking = await saveBooking(booking);
     setConfirmedBooking(savedBooking);
     setStep('confirmation');
@@ -518,7 +541,25 @@ export function Bookings() {
                 )}
               </div>
             )}
-            
+
+            {/* Empty State for Past Bookings */}
+            {pastBookings.length === 0 && (
+              <div className="bg-white rounded-2xl border border-sandstone/50 p-8 text-center">
+                <div className="w-16 h-16 bg-sandstone/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Plane className="w-8 h-8 text-midnight/30" />
+                </div>
+                <h3 className="text-lg font-semibold text-midnight mb-2">No Bookings Yet</h3>
+                <p className="text-midnight/60 mb-4">Start planning your next adventure!</p>
+                <Link
+                  to="/weaver"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-eucalyptus hover:bg-eucalyptus-dark text-white font-medium rounded-lg transition-colors"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Plan a Trip
+                </Link>
+              </div>
+            )}
+
             {/* Quick Links */}
             <div className="grid md:grid-cols-3 gap-4">
               <Link
@@ -893,10 +934,23 @@ export function Bookings() {
                     <input
                       type="text"
                       value={contactDetails.name}
-                      onChange={(e) => setContactDetails({ ...contactDetails, name: e.target.value })}
+                      onChange={(e) => {
+                        setContactDetails({ ...contactDetails, name: e.target.value });
+                        if (validationErrors.name) {
+                          setValidationErrors({ ...validationErrors, name: '' });
+                        }
+                      }}
                       placeholder="Enter your full name"
-                      className="w-full px-4 py-3 bg-sandstone/20 rounded-xl border border-sandstone/50 focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20 outline-none"
+                      className={cn(
+                        "w-full px-4 py-3 bg-sandstone/20 rounded-xl border outline-none transition-colors",
+                        validationErrors.name
+                          ? "border-ember focus:border-ember focus:ring-2 focus:ring-ember/20"
+                          : "border-sandstone/50 focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20"
+                      )}
                     />
+                    {validationErrors.name && (
+                      <p className="mt-1 text-sm text-ember">{validationErrors.name}</p>
+                    )}
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -904,20 +958,46 @@ export function Bookings() {
                       <input
                         type="email"
                         value={contactDetails.email}
-                        onChange={(e) => setContactDetails({ ...contactDetails, email: e.target.value })}
+                        onChange={(e) => {
+                          setContactDetails({ ...contactDetails, email: e.target.value });
+                          if (validationErrors.email) {
+                            setValidationErrors({ ...validationErrors, email: '' });
+                          }
+                        }}
                         placeholder="your@email.com"
-                        className="w-full px-4 py-3 bg-sandstone/20 rounded-xl border border-sandstone/50 focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20 outline-none"
+                        className={cn(
+                          "w-full px-4 py-3 bg-sandstone/20 rounded-xl border outline-none transition-colors",
+                          validationErrors.email
+                            ? "border-ember focus:border-ember focus:ring-2 focus:ring-ember/20"
+                            : "border-sandstone/50 focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20"
+                        )}
                       />
+                      {validationErrors.email && (
+                        <p className="mt-1 text-sm text-ember">{validationErrors.email}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-midnight/70 mb-2">Phone</label>
                       <input
                         type="tel"
                         value={contactDetails.phone}
-                        onChange={(e) => setContactDetails({ ...contactDetails, phone: e.target.value })}
+                        onChange={(e) => {
+                          setContactDetails({ ...contactDetails, phone: e.target.value });
+                          if (validationErrors.phone) {
+                            setValidationErrors({ ...validationErrors, phone: '' });
+                          }
+                        }}
                         placeholder="+91 98765 43210"
-                        className="w-full px-4 py-3 bg-sandstone/20 rounded-xl border border-sandstone/50 focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20 outline-none"
+                        className={cn(
+                          "w-full px-4 py-3 bg-sandstone/20 rounded-xl border outline-none transition-colors",
+                          validationErrors.phone
+                            ? "border-ember focus:border-ember focus:ring-2 focus:ring-ember/20"
+                            : "border-sandstone/50 focus:border-eucalyptus focus:ring-2 focus:ring-eucalyptus/20"
+                        )}
                       />
+                      {validationErrors.phone && (
+                        <p className="mt-1 text-sm text-ember">{validationErrors.phone}</p>
+                      )}
                     </div>
                   </div>
                 </div>

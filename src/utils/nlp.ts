@@ -235,30 +235,39 @@ export function extractFromQuery(query: string): NLPResult {
   });
   
   // 4. Extract duration
-  const durationPatterns = [
-    /(\d+)\s*(?:day|days)/i,
-    /(\d+)\s*(?:night|nights)/i,
-    /(\d+)\s*(?:week|weeks)/i,
-    /(?:a|one)\s*week/i,
-    /weekend/i,
-    /long\s*weekend/i
-  ];
-  
-  for (const pattern of durationPatterns) {
-    const match = query.match(pattern);
-    if (match) {
-      if (pattern.source.includes('week')) {
-        if (match[1]) {
-          duration = parseInt(match[1]) * 7;
-        } else {
-          duration = 7;
-        }
-      } else if (pattern.source.includes('weekend')) {
-        duration = query.includes('long') ? 3 : 2;
-      } else if (match[1]) {
-        duration = parseInt(match[1]);
+  // Re-declare for duration-specific logic
+  const durationQuery = lowerQuery;
+
+  // Check for "weekend" or "long weekend" first (must check before "week")
+  if (durationQuery.includes('long weekend')) {
+    duration = 3;
+  } else if (durationQuery.includes('weekend')) {
+    duration = 2;
+  } else if (durationQuery.includes('week')) {
+    // Check for "2 weeks" or "a week" or "one week" or just "week"
+    const weekMatch = durationQuery.match(/(\d+)\s+weeks?/);
+    if (weekMatch && weekMatch[1]) {
+      duration = parseInt(weekMatch[1]) * 7;
+    } else if (durationQuery.match(/\b(one|a)\s+week\b/)) {
+      duration = 7;
+    } else if (/\bweek\b/.test(durationQuery)) {
+      // Standalone "week" (not preceded by letter, e.g., "week trip")
+      // but not "weekend"
+      const weekWordMatch = durationQuery.match(/\bweek\b/);
+      if (weekWordMatch) {
+        duration = 7;
       }
-      break;
+    }
+  } else {
+    // Check for "X days" or "X nights"
+    const dayMatch = durationQuery.match(/(\d+)\s*days?/);
+    if (dayMatch && dayMatch[1]) {
+      duration = parseInt(dayMatch[1]);
+    } else {
+      const nightMatch = durationQuery.match(/(\d+)\s*nights?/);
+      if (nightMatch && nightMatch[1]) {
+        duration = parseInt(nightMatch[1]);
+      }
     }
   }
   

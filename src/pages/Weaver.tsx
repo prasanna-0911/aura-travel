@@ -7,13 +7,17 @@ import {
   Clock,
   Tag,
   Lightbulb,
-  ChevronRight
+  ChevronRight,
+  AlertCircle,
+  RefreshCw,
+  WifiOff
 } from 'lucide-react';
 import { extractFromQuery, EXAMPLE_QUERIES, getTagColor, NLPResult } from '@/utils/nlp';
 import { generateItinerary, GeneratedItinerary } from '@/services/weaverService';
 import { cn } from '@/utils/cn';
 import { ItineraryResults } from '@/components/weaver/ItineraryResults';
 import { toast } from '@/components/notifications/Toast';
+import { isOnline, onOnlineStatusChange } from '@/services/apiClient';
 
 export function Weaver() {
   const [query, setQuery] = useState('');
@@ -22,6 +26,15 @@ export function Weaver() {
   const [nlpResult, setNlpResult] = useState<NLPResult | null>(null);
   const [itinerary, setItinerary] = useState<GeneratedItinerary | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [online, setOnline] = useState(true);
+
+  // Monitor online status
+  useEffect(() => {
+    setOnline(isOnline());
+    const cleanup = onOnlineStatusChange(setOnline);
+    return cleanup;
+  }, []);
 
   // Real-time NLP analysis as user types
   useEffect(() => {
@@ -40,16 +53,22 @@ export function Weaver() {
     e.preventDefault();
     if (!query.trim() || isGenerating) return;
 
+    if (!online) {
+      toast.error('No Internet', 'Please check your connection and try again.');
+      return;
+    }
+
+    setError(null);
     setIsAnalyzing(true);
-    
+
     // Extract tags from query
     const result = extractFromQuery(query);
     setNlpResult(result);
-    
+
     setTimeout(async () => {
       setIsAnalyzing(false);
       setIsGenerating(true);
-      
+
       try {
         const generatedItinerary = await generateItinerary(result);
         setItinerary(generatedItinerary);
@@ -58,13 +77,28 @@ export function Weaver() {
           'Itinerary Ready!',
           `${generatedItinerary.destination} - ${generatedItinerary.days.length} days with ${generatedItinerary.days.reduce((a, d) => a + d.activities.length, 0)} activities`
         );
-      } catch (error) {
-        console.error('Error generating itinerary:', error);
-        toast.error('Generation Failed', 'Could not create itinerary. Please try again.');
+      } catch (err) {
+        console.error('Error generating itinerary:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        if (errorMessage.includes('timed out')) {
+          setError('The request is taking too long. Please try again or check your connection.');
+          toast.error('Request Timeout', 'Generation timed out. Please try again.');
+        } else if (errorMessage.includes('failed') || errorMessage.includes('network')) {
+          setError('Network error. Please check your connection and try again.');
+          toast.error('Connection Error', 'Could not connect to server. Please try again.');
+        } else {
+          setError('Something went wrong. Please try again.');
+          toast.error('Generation Failed', 'Could not create itinerary. Please try again.');
+        }
       } finally {
         setIsGenerating(false);
       }
     }, 800);
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    handleSubmit(new Event('submit') as unknown as React.FormEvent);
   };
 
   const handleExampleClick = (example: string) => {
@@ -109,9 +143,37 @@ export function Weaver() {
         </div>
       </section>
 
+      {/* Offline Banner */}
+      {!online && (
+        <div className="flex items-center justify-center gap-2 p-3 bg-ember/10 border-b border-ember/20">
+          <WifiOff className="w-5 h-5 text-ember" />
+          <span className="text-sm text-ember font-medium">You are offline. Please check your connection.</span>
+        </div>
+      )}
+
       {/* Main Input Section */}
       <section className="py-8 md:py-12">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 p-4 bg-ember/10 border border-ember/20 rounded-xl">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-ember flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-midnight">{error}</p>
+                  <button
+                    onClick={handleRetry}
+                    disabled={isGenerating}
+                    className="mt-2 flex items-center gap-2 text-sm text-eucalyptus hover:text-eucalyptus-dark font-medium"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Input Card */}
           <div className="bg-white rounded-2xl shadow-xl shadow-midnight/5 border border-sandstone/50 overflow-hidden">
             <form onSubmit={handleSubmit}>
@@ -180,10 +242,10 @@ export function Weaver() {
               <div className="p-6 pt-0">
                 <button
                   type="submit"
-                  disabled={!query.trim() || isAnalyzing || isGenerating}
+                  disabled={!query.trim() || isAnalyzing || isGenerating || !online}
                   className={cn(
                     "w-full flex items-center justify-center gap-2 py-4 rounded-xl font-semibold transition-all duration-200",
-                    query.trim() && !isAnalyzing && !isGenerating
+                    query.trim() && !isAnalyzing && !isGenerating && online
                       ? "bg-eucalyptus hover:bg-eucalyptus-dark text-white hover:shadow-lg hover:shadow-eucalyptus/20"
                       : "bg-sandstone/50 text-midnight/40 cursor-not-allowed"
                   )}
@@ -197,6 +259,11 @@ export function Weaver() {
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
                       Weaving your perfect itinerary...
+                    </>
+                  ) : !online ? (
+                    <>
+                      <WifiOff className="w-5 h-5" />
+                      You are offline
                     </>
                   ) : (
                     <>

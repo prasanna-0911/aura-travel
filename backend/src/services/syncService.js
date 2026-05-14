@@ -83,10 +83,12 @@ function generateReasoning(contextChange, original, suggested) {
 }
 
 function calculateRelevanceScore(original, suggested, preferredTags) {
-  const shared = original.experiential_tags.filter((tag) => suggested.experiential_tags.includes(tag));
-  const sharedScore = original.experiential_tags.length ? shared.length / original.experiential_tags.length : 0;
+  const origTags = original.experiential_tags || [];
+  const sugTags = suggested.experiential_tags || [];
+  const shared = origTags.filter((tag) => sugTags.includes(tag));
+  const sharedScore = origTags.length ? shared.length / origTags.length : 0;
   const preferredBonus = Math.min(
-    suggested.experiential_tags.filter((tag) => preferredTags.includes(tag)).length * 0.1,
+    sugTags.filter((tag) => (preferredTags || []).includes(tag)).length * 0.1,
     0.3
   );
   const categoryBonus = original.category === suggested.category ? 0.15 : 0;
@@ -96,16 +98,22 @@ function calculateRelevanceScore(original, suggested, preferredTags) {
 
 async function findAlternatives(currentActivity, contextChange, destination, excludeIds = []) {
   const rule = CONFLICT_RULES[contextChange.type] || CONFLICT_RULES.venue_closed;
+  const conflictingTags = rule.conflictingTags || [];
+  const preferredTags = rule.preferredTags || [];
+
   const activities = await Activity.find({
     destination,
     id: { $nin: [currentActivity.id, ...excludeIds] }
   }).lean();
 
+  const activityTags = currentActivity.experiential_tags || [];
+
   const scored = activities
-    .filter((activity) => !activity.experiential_tags.some((tag) => rule.conflictingTags.includes(tag)))
+    .filter((activity) => !((activity.experiential_tags || []).some((tag) => conflictingTags.includes(tag))))
     .map((activity) => {
-      const preferredCount = activity.experiential_tags.filter((tag) => rule.preferredTags.includes(tag)).length;
-      const sharedCount = activity.experiential_tags.filter((tag) => currentActivity.experiential_tags.includes(tag)).length;
+      const actTags = activity.experiential_tags || [];
+      const preferredCount = actTags.filter((tag) => preferredTags.includes(tag)).length;
+      const sharedCount = actTags.filter((tag) => activityTags.includes(tag)).length;
       return {
         activity,
         score: preferredCount * 3 + sharedCount * 2 + (activity.user_rating || 0)
@@ -119,14 +127,16 @@ async function findAlternatives(currentActivity, contextChange, destination, exc
     suggestedActivity: activity,
     reasoning: generateReasoning(contextChange, currentActivity, activity),
     relevanceScore: calculateRelevanceScore(currentActivity, activity, rule.preferredTags),
-    preservedTags: currentActivity.experiential_tags.filter((tag) => activity.experiential_tags.includes(tag))
+    preservedTags: (currentActivity.experiential_tags || []).filter((tag) => (activity.experiential_tags || []).includes(tag))
   }));
 }
 
 async function checkConflicts(currentActivity, rawContextChange, destination, excludeIds = []) {
   const contextChange = normalizeContextChange(rawContextChange);
   const rule = CONFLICT_RULES[contextChange.type] || CONFLICT_RULES.venue_closed;
-  const hasConflictingTags = currentActivity.experiential_tags.some((tag) => rule.conflictingTags.includes(tag));
+  const activityTags = currentActivity.experiential_tags || [];
+  const conflictingTags = rule.conflictingTags || [];
+  const hasConflictingTags = activityTags.some((tag) => conflictingTags.includes(tag));
   const hasConflict = contextChange.type === 'venue_closed' || contextChange.type === 'user_hungry' || hasConflictingTags;
 
   if (!hasConflict) {

@@ -28,11 +28,37 @@ export function setStoredToken(token: string | null) {
   }
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getStoredToken();
-  const headers = new Headers(options.headers);
+export interface ApiRequestOptions extends RequestInit {
+  timeout?: number;
+  retries?: number;
+}
 
-  if (!headers.has('Content-Type') && options.body) {
+export function isOnline(): boolean {
+  return navigator.onLine;
+}
+
+export function onOnlineStatusChange(callback: (online: boolean) => void): () => void {
+  const handleOnline = () => callback(true);
+  const handleOffline = () => callback(false);
+
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+
+  return () => {
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
+  };
+}
+
+export async function apiRequest<T>(
+  path: string,
+  options: ApiRequestOptions = {}
+): Promise<T> {
+  const { timeout = 30000, retries = 1, ...fetchOptions } = options;
+  const token = getStoredToken();
+  const headers = new Headers(fetchOptions.headers);
+
+  if (!headers.has('Content-Type') && fetchOptions.body) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -40,20 +66,65 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers
-  });
+  const url = `${API_BASE_URL}${path}`;
+  let lastError: Error = new Error('Unknown error');
 
-  const contentType = response.headers.get('content-type') || '';
-  const payload = contentType.includes('application/json') ? await response.json() : await response.text();
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) {
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+    }
 
-  if (!response.ok) {
-    const message = typeof payload === 'object' && payload && 'message' in payload
-      ? String((payload as { message: unknown }).message)
-      : `Request failed with status ${response.status}`;
-    throw new ApiError(message, response.status, payload);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...fetchOptions,
+        headers,
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      const contentType = response.headers.get('content-type') || '';
+      const payload = contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
+
+      if (!response.ok) {
+        const message = typeof payload === 'object' && payload && 'message' in payload
+          ? String((payload as { message: unknown }).message)
+          : `Request failed with status ${response.status}`;
+        throw new ApiError(message, response.status, payload);
+      }
+
+      return payload as T;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error as Error;
+
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new ApiError(`Request timed out after ${timeout}ms`, 408, null);
+        }
+
+        if (error instanceof ApiError) {
+          if (attempt === retries) throw error;
+          if (error.status >= 400 && error.status < 500) {
+            throw error;
+          }
+        }
+      }
+
+      if (attempt === retries) {
+        throw new ApiError(
+          lastError instanceof Error ? lastError.message : 'Network request failed',
+          lastError instanceof ApiError ? lastError.status : 0,
+          lastError instanceof ApiError ? lastError.payload : null
+        );
+      }
+    }
   }
 
-  return payload as T;
+  throw lastError;
 }

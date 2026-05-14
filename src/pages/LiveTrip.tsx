@@ -382,11 +382,28 @@ export function LiveTrip() {
               <span className="text-white font-medium">{progress}%</span>
             </div>
             <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-eucalyptus rounded-full transition-all duration-500"
                 style={{ width: `${progress}%` }}
+                role="progressbar"
+                aria-valuenow={progress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Trip completion progress"
               />
             </div>
+          </div>
+
+          {/* Day/Activity Progress */}
+          <div className="mt-4 flex items-center gap-4 text-sm text-white/60">
+            <span className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              Day {tripState.currentDayIndex + 1} of {tripState.itinerary.duration}
+            </span>
+            <span className="flex items-center gap-1">
+              <Check className="w-4 h-4" />
+              {tripState.completedActivities.length} / {tripState.itinerary.days.reduce((sum, day) => sum + day.activities.length, 0)} activities
+            </span>
           </div>
         </div>
 
