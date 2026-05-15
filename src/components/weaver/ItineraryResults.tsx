@@ -20,9 +20,11 @@ import {
   Download,
   Play,
   Navigation,
-  Check
+  Check,
+  Globe,
+  MapPinned
 } from 'lucide-react';
-import { GeneratedItinerary } from '@/services/weaverService';
+import { GeneratedItinerary, ExternalHotel, ExternalRestaurant, ExternalActivity } from '@/services/weaverService';
 import { startTrip } from '@/services/tripService';
 import { ItineraryMap } from '@/components/maps';
 import { cn } from '@/utils/cn';
@@ -34,7 +36,7 @@ interface ItineraryResultsProps {
 
 export function ItineraryResults({ itinerary, onReset }: ItineraryResultsProps) {
   const [expandedDays, setExpandedDays] = useState<number[]>([1]);
-  const [activeTab, setActiveTab] = useState<'itinerary' | 'map' | 'hotel' | 'restaurants'>('itinerary');
+  const [activeTab, setActiveTab] = useState<'itinerary' | 'map' | 'hotel' | 'restaurants' | 'activities'>('itinerary');
 
   const toggleDay = (day: number) => {
     setExpandedDays(prev => 
@@ -177,12 +179,13 @@ export function ItineraryResults({ itinerary, onReset }: ItineraryResultsProps) 
 
         {/* Tabs */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex gap-1 border-b border-white/10">
+          <div className="flex gap-1 border-b border-white/10 overflow-x-auto">
             {[
               { id: 'itinerary', label: 'Itinerary', icon: Calendar },
               { id: 'map', label: 'Route Map', icon: Navigation },
               { id: 'hotel', label: 'Accommodation', icon: Hotel },
               { id: 'restaurants', label: 'Restaurants', icon: Utensils },
+              { id: 'activities', label: 'Activities', icon: MapPinned },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -365,148 +368,369 @@ export function ItineraryResults({ itinerary, onReset }: ItineraryResultsProps) 
         )}
 
         {/* Hotel Tab */}
-        {activeTab === 'hotel' && itinerary.hotel && (
-          <div className="bg-white rounded-2xl border border-sandstone/50 overflow-hidden">
-            <div className="md:flex">
-              {/* Hotel Image */}
-              <div className="md:w-1/3 h-64 md:h-auto">
-                <img 
-                  src={itinerary.hotel.images[0]} 
-                  alt={itinerary.hotel.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+        {activeTab === 'hotel' && (
+          <div className="space-y-6">
+            {/* Database Hotel */}
+            {itinerary.hotel && (
+              <div className="bg-white rounded-2xl border border-sandstone/50 overflow-hidden">
+                <div className="md:flex">
+                  {/* Hotel Image */}
+                  <div className="md:w-1/3 h-64 md:h-auto">
+                    <img
+                      src={itinerary.hotel.images[0]}
+                      alt={itinerary.hotel.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
 
-              {/* Hotel Details */}
-              <div className="flex-1 p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      {Array.from({ length: itinerary.hotel.star_rating }).map((_, i) => (
-                        <Star key={i} className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  {/* Hotel Details */}
+                  <div className="flex-1 p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          {Array.from({ length: itinerary.hotel.star_rating }).map((_, i) => (
+                            <Star key={i} className="w-4 h-4 text-amber-500 fill-amber-500" />
+                          ))}
+                        </div>
+                        <h2
+                          className="text-2xl font-bold text-midnight"
+                          style={{ fontFamily: 'var(--font-heading)' }}
+                        >
+                          {itinerary.hotel.name}
+                        </h2>
+                        <p className="text-midnight/60 flex items-center gap-1 mt-1">
+                          <MapPin className="w-4 h-4" />
+                          {itinerary.hotel.location.address}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-eucalyptus">
+                          ₹{itinerary.hotel.price_per_night.toLocaleString()}
+                        </p>
+                        <p className="text-sm text-midnight/60">per night</p>
+                      </div>
+                    </div>
+
+                    <p className="text-midnight/70 mb-4">
+                      {itinerary.hotel.description}
+                    </p>
+
+                    {/* Amenities */}
+                    <div className="mb-4">
+                      <h4 className="font-medium text-midnight mb-2">Amenities</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {itinerary.hotel.amenities.map((amenity, index) => (
+                          <span
+                            key={index}
+                            className="px-3 py-1 bg-sandstone/50 rounded-full text-sm text-midnight/70"
+                          >
+                            {amenity}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-2">
+                      {itinerary.hotel.experiential_tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="px-2.5 py-1 bg-eucalyptus/10 text-eucalyptus rounded-full text-sm"
+                        >
+                          {tag}
+                        </span>
                       ))}
                     </div>
-                    <h2 
-                      className="text-2xl font-bold text-midnight"
-                      style={{ fontFamily: 'var(--font-heading)' }}
-                    >
-                      {itinerary.hotel.name}
-                    </h2>
-                    <p className="text-midnight/60 flex items-center gap-1 mt-1">
-                      <MapPin className="w-4 h-4" />
-                      {itinerary.hotel.location.address}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-eucalyptus">
-                      ₹{itinerary.hotel.price_per_night.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-midnight/60">per night</p>
-                  </div>
-                </div>
 
-                <p className="text-midnight/70 mb-4">
-                  {itinerary.hotel.description}
-                </p>
-
-                {/* Amenities */}
-                <div className="mb-4">
-                  <h4 className="font-medium text-midnight mb-2">Amenities</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {itinerary.hotel.amenities.map((amenity, index) => (
-                      <span 
-                        key={index}
-                        className="px-3 py-1 bg-sandstone/50 rounded-full text-sm text-midnight/70"
+                    {/* CTA */}
+                    <div className="mt-6 pt-6 border-t border-sandstone/50 flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                        <span className="font-semibold text-midnight">{itinerary.hotel.user_rating}</span>
+                        <span className="text-midnight/60">rating</span>
+                      </div>
+                      <Link
+                        to="/bookings"
+                        className="flex items-center gap-2 px-6 py-3 bg-eucalyptus hover:bg-eucalyptus-dark text-white rounded-lg font-medium transition-colors"
                       >
-                        {amenity}
-                      </span>
-                    ))}
+                        Book Now
+                        <ExternalLink className="w-4 h-4" />
+                      </Link>
+                    </div>
                   </div>
-                </div>
-
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2">
-                  {itinerary.hotel.experiential_tags.map((tag, index) => (
-                    <span 
-                      key={index}
-                      className="px-2.5 py-1 bg-eucalyptus/10 text-eucalyptus rounded-full text-sm"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                {/* CTA */}
-                <div className="mt-6 pt-6 border-t border-sandstone/50 flex items-center justify-between">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-                    <span className="font-semibold text-midnight">{itinerary.hotel.user_rating}</span>
-                    <span className="text-midnight/60">rating</span>
-                  </div>
-                  <Link
-                    to="/bookings"
-                    className="flex items-center gap-2 px-6 py-3 bg-eucalyptus hover:bg-eucalyptus-dark text-white rounded-lg font-medium transition-colors"
-                  >
-                    Book Now
-                    <ExternalLink className="w-4 h-4" />
-                  </Link>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* External Hotels from APIs */}
+            {itinerary.externalHotels && itinerary.externalHotels.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Globe className="w-5 h-5 text-eucalyptus" />
+                  <h3 className="text-lg font-semibold text-midnight" style={{ fontFamily: 'var(--font-heading)' }}>
+                    More Hotel Options
+                  </h3>
+                  <span className="text-xs px-2 py-0.5 bg-eucalyptus/10 text-eucalyptus rounded-full">
+                    From External APIs
+                  </span>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {itinerary.externalHotels.slice(0, 6).map((hotel, index) => (
+                    <ExternalHotelCard key={index} hotel={hotel} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No hotels available */}
+            {!itinerary.hotel && (!itinerary.externalHotels || itinerary.externalHotels.length === 0) && (
+              <div className="text-center py-12 text-midnight/50">
+                <Hotel className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>No hotel recommendations available</p>
+              </div>
+            )}
           </div>
         )}
 
         {/* Restaurants Tab */}
         {activeTab === 'restaurants' && (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {itinerary.recommendedRestaurants.map((restaurant) => (
-              <div 
-                key={restaurant.id}
-                className="bg-white rounded-2xl border border-sandstone/50 overflow-hidden hover:shadow-lg transition-shadow"
-              >
-                {/* Image */}
-                <div className="h-40 overflow-hidden">
-                  <img 
-                    src={restaurant.images[0]} 
-                    alt={restaurant.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+          <div className="space-y-6">
+            {/* Database Restaurants */}
+            {itinerary.recommendedRestaurants.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-midnight mb-4" style={{ fontFamily: 'var(--font-heading)' }}>
+                  Recommended Restaurants
+                </h3>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {itinerary.recommendedRestaurants.map((restaurant) => (
+                    <div
+                      key={restaurant.id}
+                      className="bg-white rounded-2xl border border-sandstone/50 overflow-hidden hover:shadow-lg transition-shadow"
+                    >
+                      {/* Image */}
+                      <div className="h-40 overflow-hidden">
+                        <img
+                          src={restaurant.images[0]}
+                          alt={restaurant.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
 
-                {/* Content */}
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-midnight">{restaurant.name}</h3>
-                    <span className="flex items-center gap-1 text-sm">
-                      <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                      {restaurant.user_rating}
-                    </span>
-                  </div>
+                      {/* Content */}
+                      <div className="p-5">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold text-midnight">{restaurant.name}</h3>
+                          <span className="flex items-center gap-1 text-sm">
+                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                            {restaurant.user_rating}
+                          </span>
+                        </div>
 
-                  <div className="flex items-center gap-2 text-sm text-midnight/60 mb-3">
-                    <span>{restaurant.cuisine.slice(0, 2).join(', ')}</span>
-                    <span>•</span>
-                    <span>{restaurant.price_range}</span>
-                  </div>
+                        <div className="flex items-center gap-2 text-sm text-midnight/60 mb-3">
+                          <span>{restaurant.cuisine.slice(0, 2).join(', ')}</span>
+                          <span>•</span>
+                          <span>{restaurant.price_range}</span>
+                        </div>
 
-                  <p className="text-sm text-midnight/60 line-clamp-2 mb-3">
-                    {restaurant.description}
-                  </p>
+                        <p className="text-sm text-midnight/60 line-clamp-2 mb-3">
+                          {restaurant.description}
+                        </p>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-midnight/50">
-                      ~₹{restaurant.avg_cost_per_person} per person
-                    </span>
-                    <span className="text-xs px-2 py-1 bg-eucalyptus/10 text-eucalyptus rounded-full">
-                      {restaurant.best_for}
-                    </span>
-                  </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-midnight/50">
+                            ~₹{restaurant.avg_cost_per_person} per person
+                          </span>
+                          <span className="text-xs px-2 py-1 bg-eucalyptus/10 text-eucalyptus rounded-full">
+                            {restaurant.best_for}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* External Restaurants from APIs */}
+            {itinerary.externalRestaurants && itinerary.externalRestaurants.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Globe className="w-5 h-5 text-eucalyptus" />
+                  <h3 className="text-lg font-semibold text-midnight" style={{ fontFamily: 'var(--font-heading)' }}>
+                    More Dining Options
+                  </h3>
+                  <span className="text-xs px-2 py-0.5 bg-eucalyptus/10 text-eucalyptus rounded-full">
+                    From External APIs
+                  </span>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {itinerary.externalRestaurants.slice(0, 6).map((restaurant, index) => (
+                    <ExternalRestaurantCard key={index} restaurant={restaurant} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No restaurants available */}
+            {itinerary.recommendedRestaurants.length === 0 && (!itinerary.externalRestaurants || itinerary.externalRestaurants.length === 0) && (
+              <div className="text-center py-12 text-midnight/50">
+                <Utensils className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>No restaurant recommendations available</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Activities Tab */}
+        {activeTab === 'activities' && (
+          <div className="space-y-6">
+            {/* External Activities from APIs */}
+            {itinerary.externalActivities && itinerary.externalActivities.length > 0 ? (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Globe className="w-5 h-5 text-eucalyptus" />
+                  <h3 className="text-lg font-semibold text-midnight" style={{ fontFamily: 'var(--font-heading)' }}>
+                    Things to Do in {itinerary.destination}
+                  </h3>
+                  <span className="text-xs px-2 py-0.5 bg-eucalyptus/10 text-eucalyptus rounded-full">
+                    From External APIs
+                  </span>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {itinerary.externalActivities.slice(0, 12).map((activity, index) => (
+                    <ExternalActivityCard key={index} activity={activity} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-midnight/50">
+                <MapPinned className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                <p>No activity recommendations available</p>
+                <p className="text-sm mt-1">Activities are shown in the itinerary tab</p>
+              </div>
+            )}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// External Hotel Card Component
+function ExternalHotelCard({ hotel }: { hotel: ExternalHotel }) {
+  const price = hotel.currency === 'USD' ? `$${hotel.price}` : `₹${hotel.price.toLocaleString()}`;
+
+  return (
+    <div className="bg-white rounded-xl border border-sandstone/50 p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-2">
+        <h4 className="font-semibold text-midnight line-clamp-1">{hotel.name}</h4>
+        {hotel.reviewScore && (
+          <span className="flex items-center gap-1 text-sm">
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            {hotel.reviewScore}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1 text-sm text-midnight/60 mb-2">
+        <MapPin className="w-3.5 h-3.5" />
+        <span className="line-clamp-1">{hotel.address || hotel.distance || 'Location available'}</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          {hotel.rating && Array.from({ length: hotel.rating }).map((_, i) => (
+            <Star key={i} className="w-3 h-3 text-amber-500 fill-amber-500" />
+          ))}
+        </div>
+        <span className="font-semibold text-eucalyptus">{price}/night</span>
+      </div>
+      {hotel.amenities && hotel.amenities.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {hotel.amenities.slice(0, 3).map((amenity, i) => (
+            <span key={i} className="text-xs px-2 py-0.5 bg-sandstone/50 text-midnight/60 rounded">
+              {amenity}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// External Restaurant Card Component
+function ExternalRestaurantCard({ restaurant }: { restaurant: ExternalRestaurant }) {
+  const priceIcons = ['', '$', '$$', '$$$', '$$$$'];
+  const priceLevel = restaurant.priceLevel ? priceIcons[restaurant.priceLevel] : '';
+
+  return (
+    <div className="bg-white rounded-xl border border-sandstone/50 p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-2">
+        <h4 className="font-semibold text-midnight line-clamp-1">{restaurant.name}</h4>
+        {restaurant.rating && (
+          <span className="flex items-center gap-1 text-sm">
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            {restaurant.rating}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1 text-sm text-midnight/60 mb-2">
+        <MapPin className="w-3.5 h-3.5" />
+        <span className="line-clamp-1">{restaurant.address || 'Address available'}</span>
+      </div>
+      {restaurant.types && restaurant.types.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {restaurant.types.slice(0, 2).map((type, i) => (
+            <span key={i} className="text-xs px-2 py-0.5 bg-eucalyptus/10 text-eucalyptus rounded">
+              {type.replace(/_/g, ' ')}
+            </span>
+          ))}
+          {priceLevel && (
+            <span className="text-xs px-2 py-0.5 bg-sandstone/50 text-midnight/60 rounded">
+              {priceLevel}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// External Activity Card Component
+function ExternalActivityCard({ activity }: { activity: ExternalActivity }) {
+  const priceIcons = ['', 'Free', '$', '$$', '$$$', '$$$$'];
+  const priceLevel = activity.priceLevel ? priceIcons[activity.priceLevel] : '';
+
+  return (
+    <div className="bg-white rounded-xl border border-sandstone/50 p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-2">
+        <h4 className="font-semibold text-midnight line-clamp-2">{activity.name}</h4>
+        {activity.rating && (
+          <span className="flex items-center gap-1 text-sm flex-shrink-0">
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            {activity.rating}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1 text-sm text-midnight/60 mb-2">
+        <MapPin className="w-3.5 h-3.5" />
+        <span className="line-clamp-1">{activity.address || 'Address available'}</span>
+      </div>
+      {activity.userRatingsTotal && (
+        <p className="text-xs text-midnight/50 mb-2">{activity.userRatingsTotal.toLocaleString()} reviews</p>
+      )}
+      {activity.types && activity.types.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {activity.types.slice(0, 3).map((type, i) => (
+            <span key={i} className="text-xs px-2 py-0.5 bg-sandstone/50 text-midnight/60 rounded">
+              {type.replace(/_/g, ' ')}
+            </span>
+          ))}
+          {priceLevel && priceLevel !== 'Free' && (
+            <span className="text-xs px-2 py-0.5 bg-eucalyptus/10 text-eucalyptus rounded">
+              {priceLevel}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

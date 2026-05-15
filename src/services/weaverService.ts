@@ -12,6 +12,45 @@ export interface ItineraryDay {
   }[];
 }
 
+// External API data types
+export interface ExternalHotel {
+  id: string;
+  name: string;
+  rating: number;
+  reviewScore: number;
+  reviewCount?: number;
+  address?: string;
+  distance?: string;
+  price: number;
+  currency?: string;
+  amenities?: string[];
+  photos?: string[];
+}
+
+export interface ExternalActivity {
+  placeId: string;
+  name: string;
+  address?: string;
+  rating?: number;
+  userRatingsTotal?: number;
+  priceLevel?: number;
+  types?: string[];
+  location?: { lat: number; lng: number };
+  photos?: { photoReference: string; width: number; height: number }[];
+}
+
+export interface ExternalRestaurant {
+  placeId: string;
+  name: string;
+  address?: string;
+  rating?: number;
+  userRatingsTotal?: number;
+  priceLevel?: number;
+  types?: string[];
+  location?: { lat: number; lng: number };
+  photos?: { photoReference: string; width: number; height: number }[];
+}
+
 export interface GeneratedItinerary {
   id: string;
   destination: string;
@@ -23,6 +62,11 @@ export interface GeneratedItinerary {
   matchedTags: string[];
   generationTime: number;
   confidence: number;
+  // External API data
+  externalHotels?: ExternalHotel[];
+  externalActivities?: ExternalActivity[];
+  externalRestaurants?: ExternalRestaurant[];
+  source?: 'database' | 'rag' | 'external';
 }
 
 // Calculate activity score based on tag matching
@@ -126,6 +170,10 @@ export async function generateItinerary(nlpResult: NLPResult): Promise<Generated
     const response = await apiRequest<{
       success: boolean;
       itinerary: GeneratedItinerary;
+      externalHotels?: ExternalHotel[];
+      externalActivities?: ExternalActivity[];
+      externalRestaurants?: ExternalRestaurant[];
+      source?: string;
     }>('/weaver/generate', {
       method: 'POST',
       body: JSON.stringify({
@@ -137,7 +185,14 @@ export async function generateItinerary(nlpResult: NLPResult): Promise<Generated
       })
     });
 
-    return response.itinerary;
+    // Attach external data to the itinerary
+    return {
+      ...response.itinerary,
+      externalHotels: response.externalHotels,
+      externalActivities: response.externalActivities,
+      externalRestaurants: response.externalRestaurants,
+      source: response.source as 'database' | 'rag' | 'external' | undefined
+    };
   } catch (error) {
     console.warn('Using local itinerary generator fallback:', error);
   }
