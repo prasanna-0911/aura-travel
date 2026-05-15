@@ -2,18 +2,34 @@ const { generateItineraryFromQuery } = require('./weaverService');
 const ragService = require('./ragService');
 const externalApiService = require('./externalApiService');
 const { extractFromQuery } = require('./nlpService');
+const Activity = require('../models/Activity');
 
-const CURATED_DESTINATIONS = ['Goa', 'Manali', 'Pune', 'Mumbai', 'Delhi', 'Jaipur', 'Kerala'];
+// Check database for available destinations dynamically
+async function getAvailableDestinations() {
+  try {
+    const destinations = await Activity.distinct('destination');
+    return destinations.map(d => d.toLowerCase());
+  } catch {
+    return [];
+  }
+}
 
 async function hybridGenerateItinerary(query, options = {}) {
   const { useRag = false, includeExternalData = true } = options;
   const nlpResult = extractFromQuery(query || '');
-  const destination = options.destination || nlpResult.destination || 'Goa';
+
+  // Use destination from NLP, no default fallback
+  const destination = options.destination || nlpResult.destination;
+  if (!destination) {
+    throw new Error('Please specify a destination in your query (e.g., "trip to Paris")');
+  }
+
   const duration = Math.max(1, Math.min(Number(options.duration || nlpResult.duration || 3), 14));
 
-  // Check if destination is curated (has database data)
-  const isCuratedDestination = CURATED_DESTINATIONS.some(
-    d => d.toLowerCase() === destination.toLowerCase()
+  // Check if destination exists in database dynamically
+  const availableDestinations = await getAvailableDestinations();
+  const isCuratedDestination = availableDestinations.some(
+    d => d === destination.toLowerCase()
   );
 
   // Strategy: Use RAG if requested or for non-curated destinations
@@ -116,6 +132,5 @@ async function generateWithExternalDataOnly(destination, duration, preferences) 
 
 module.exports = {
   hybridGenerateItinerary,
-  generateWithExternalDataOnly,
-  CURATED_DESTINATIONS
+  generateWithExternalDataOnly
 };

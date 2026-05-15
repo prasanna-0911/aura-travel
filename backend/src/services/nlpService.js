@@ -2,9 +2,67 @@ const nlp = require('compromise');
 const { ALL_TAGS, TAG_SYNONYMS } = require('../utils/tagDictionary');
 
 const DESTINATION_KEYWORDS = {
+  // India
   goa: ['goa', 'beach', 'beaches', 'coastal', 'seaside', 'ocean', 'sea', 'baga', 'calangute', 'panjim', 'arambol', 'anjuna', 'palolem'],
   manali: ['manali', 'mountain', 'mountains', 'hills', 'himalaya', 'himalayas', 'snow', 'valley', 'kullu', 'solang', 'rohtang'],
-  pune: ['pune', 'city', 'urban', 'maharashtra', 'deccan', 'historical', 'shaniwar']
+  pune: ['pune', 'city', 'urban', 'maharashtra', 'deccan', 'historical', 'shaniwar'],
+  // Asia
+  bali: ['bali', 'denpasar', 'ubud', 'seminyak', 'kuta', 'nusa dua'],
+  thailand: ['thailand', 'bangkok', 'phuket', 'krabi', 'chiang mai', 'pattaya', 'koh samui', 'koh phi phi'],
+  tokyo: ['tokyo', 'japan', 'kyoto', 'osaka', 'hiroshima', 'nara', 'Mt Fuji', 'Mt. Fuji'],
+  singapore: ['singapore', 'marina bay', 'gardens by the bay'],
+  vietnam: ['vietnam', 'hanoi', 'ho chi minh', 'hochiminh', 'da nang', 'hoi an'],
+  malaysia: ['malaysia', 'kuala lumpur', 'penang', 'langkawi'],
+  indonesia: ['indonesia', 'jakarta', 'yogyakarta', 'bali', 'sumatra', 'java', 'borobudur'],
+  korea: ['korea', 'seoul', 'busan', 'jeju'],
+  // Europe
+  paris: ['paris', 'france', 'louvre', 'eiffel', 'montmartre', 'champs'],
+  london: ['london', 'uk', 'england', 'tower bridge', 'big ben', 'buckingham'],
+  rome: ['rome', 'italy', 'colosseum', 'vatican', 'florence', 'venice', 'milan'],
+  barcelona: ['barcelona', 'spain', 'la sagrada', 'park guell', 'las ramblas'],
+  amsterdam: ['amsterdam', 'netherlands', 'nederland', 'anne frank'],
+  prague: ['prague', 'czech', 'czechia', 'charles bridge'],
+  vienna: ['vienna', 'austria', 'salzburg'],
+  greece: ['greece', 'athens', 'santorini', 'mykonos', 'crete', 'acropolis'],
+  turkey: ['turkey', 'istanbul', 'cappadocia', 'antalya', 'ephesus'],
+  portugal: ['portugal', 'lisbon', 'porto', 'sintra', 'algarve'],
+  // Americas
+  'new york': ['new york', 'nyc', 'manhattan', 'brooklyn', 'times square', 'statue of liberty'],
+  'los angeles': ['los angeles', 'la', 'hollywood', 'santa monica', 'venice beach'],
+  'san francisco': ['san francisco', 'sf', 'golden gate', 'alcatraz'],
+  miami: ['miami', 'florida', 'south beach', 'key west'],
+  vegas: ['las vegas', 'vegas', 'strip', 'bellagio'],
+  'rio de janeiro': ['rio', 'brazil', 'copacabana', 'christ the redeemer'],
+  'mexico city': ['mexico city', 'mexico', 'cancun', 'tulum'],
+  // Middle East
+  dubai: ['dubai', 'uae', 'emirates', 'burj khalifa', 'palm'],
+  // Oceania
+  sydney: ['sydney', 'australia', 'opera house', 'harbour bridge'],
+  auckland: ['auckland', 'new zealand', 'queenstown']
+};
+
+const DESTINATION_ALIASES = {
+  'bangkok': 'thailand',
+  'phuket': 'thailand',
+  'krabi': 'thailand',
+  'chiang mai': 'thailand',
+  'kyoto': 'tokyo',
+  'osaka': 'tokyo',
+  'hanoi': 'vietnam',
+  'ho chi minh': 'vietnam',
+  'kuala lumpur': 'malaysia',
+  'london': 'london',
+  'rome': 'rome',
+  'florence': 'rome',
+  'venice': 'rome',
+  'milan': 'rome',
+  'barcelona': 'barcelona',
+  'lisbon': 'portugal',
+  'manhattan': 'new york',
+  'hollywood': 'los angeles',
+  'cancun': 'mexico city',
+  'tulum': 'mexico city',
+  'copacabana': 'rio de janeiro'
 };
 
 function titleCase(value) {
@@ -39,11 +97,28 @@ function extractFromQuery(query = '') {
     });
   });
 
+  // Check for exact destination matches first
   Object.entries(DESTINATION_KEYWORDS).forEach(([dest, keywords]) => {
     if (keywords.some((keyword) => lowerQuery.includes(keyword))) {
       destination = titleCase(dest);
     }
   });
+
+  // Check aliases (e.g., "bangkok" -> "Thailand") - reuse queryWords from line 83
+  for (const word of queryWords) {
+    if (DESTINATION_ALIASES[word] && !destination) {
+      destination = titleCase(DESTINATION_ALIASES[word]);
+      break;
+    }
+  }
+
+  // Check if any word in query directly matches a destination (for single word like "Paris", "Bali")
+  for (const dest of Object.keys(DESTINATION_KEYWORDS)) {
+    if (queryWords.includes(dest) && !destination) {
+      destination = titleCase(dest);
+      break;
+    }
+  }
 
   const durationPatterns = [
     /(\d+)\s*(?:day|days)/i,

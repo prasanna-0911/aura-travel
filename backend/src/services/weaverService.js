@@ -56,7 +56,15 @@ function plain(document) {
 async function generateItineraryFromQuery(query, overrides = {}) {
   const startTime = Date.now();
   const nlpResult = extractFromQuery(query || '');
-  const destination = overrides.destination || nlpResult.destination || determineBestDestination(nlpResult);
+
+  // Use destination from overrides (passed from hybridWeaverService), fallback to NLP result
+  const destination = overrides.destination || nlpResult.destination;
+
+  // If no destination, throw error instead of using default
+  if (!destination) {
+    throw new Error('Could not determine destination. Please specify a destination (e.g., "trip to Paris")');
+  }
+
   const duration = Math.max(1, Math.min(Number(overrides.duration || nlpResult.duration || 3), 7));
   const queryTags = Array.from(new Set([...(nlpResult.tags || []), ...((overrides.tags || []).filter(Boolean))]));
 

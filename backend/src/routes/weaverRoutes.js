@@ -1,7 +1,7 @@
 const express = require('express');
 const { TAG_DICTIONARY } = require('../utils/tagDictionary');
 const { generateItineraryFromQuery } = require('../services/weaverService');
-const { hybridGenerateItinerary, generateWithExternalDataOnly, CURATED_DESTINATIONS } = require('../services/hybridWeaverService');
+const { hybridGenerateItinerary, generateWithExternalDataOnly } = require('../services/hybridWeaverService');
 const externalApiService = require('../services/externalApiService');
 const ragService = require('../services/ragService');
 const Activity = require('../models/Activity');
