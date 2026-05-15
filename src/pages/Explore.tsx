@@ -14,9 +14,6 @@ import {
   Mountain,
   Palmtree,
   Building2,
-  Waves,
-  Trees,
-  Flame,
   Crown,
   Landmark
 } from 'lucide-react';
