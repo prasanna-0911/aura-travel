@@ -199,7 +199,7 @@ export function Weaver() {
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-eucalyptus flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm text-midnight font-medium mb-2">Available destinations in our database:</p>
+                  <p className="text-sm text-midnight font-medium mb-2">Available destinations From India in our database:</p>
                   <div className="flex flex-wrap gap-2">
                     {AVAILABLE_DESTINATIONS.map(dest => (
                       <button
