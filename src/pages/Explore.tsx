@@ -1,52 +1,73 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  MapPin, 
-  Star, 
-  Clock, 
-  IndianRupee, 
-  Filter, 
-  Search, 
-  Grid, 
+import {
+  MapPin,
+  Star,
+  Clock,
+  IndianRupee,
+  Filter,
+  Search,
+  Grid,
   Map as MapIcon,
   ChevronDown,
   Sparkles,
   Mountain,
   Palmtree,
-  Building2
+  Building2,
+  Waves,
+  Trees,
+  Flame,
+  Crown,
+  Landmark
 } from 'lucide-react';
 import { Activity, activities as localActivities } from '@/data';
 import { getActivities } from '@/services/catalogService';
 import { DestinationMap } from '@/components/maps';
 import { cn } from '@/utils/cn';
 
-// Destination data
-const DESTINATIONS = [
-  {
-    id: 'Goa',
-    name: 'Goa',
-    tagline: 'Sun, Sand & Serenity',
-    image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800&auto=format&fit=crop',
-    icon: Palmtree,
-    color: '#4FA3A5'
-  },
-  {
-    id: 'Manali',
-    name: 'Manali',
-    tagline: 'Mountains & Mystique',
-    image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800&auto=format&fit=crop',
-    icon: Mountain,
-    color: '#8B5CF6'
-  },
-  {
-    id: 'Pune',
-    name: 'Pune',
-    tagline: 'Heritage & Modernity',
-    image: 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?w=800&auto=format&fit=crop',
-    icon: Building2,
-    color: '#E07A5F'
-  }
+// Get icon based on destination type
+function getDestinationIcon(destination: string): React.ElementType {
+  const dest = destination.toLowerCase();
+  if (dest.includes('goa') || dest.includes('beach') || dest.includes('kerala')) return Palmtree;
+  if (dest.includes('manali') || dest.includes('shimla') || dest.includes('mountain') || dest.includes('hill')) return Mountain;
+  if (dest.includes('delhi') || dest.includes('mumbai') || dest.includes('bangalore') || dest.includes('pune') || dest.includes('city')) return Building2;
+  if (dest.includes('varanasi') || dest.includes('rishikesh') || dest.includes('spiritual')) return Landmark;
+  if (dest.includes('jaipur') || dest.includes('udaipur') || dest.includes('heritage') || dest.includes('fort')) return Crown;
+  return Building2;
+}
+
+// Get color based on destination
+function getDestinationColor(index: number): string {
+  const colors = ['#4FA3A5', '#8B5CF6', '#E07A5F', '#F59E0B', '#10B981', '#6366F1', '#EC4899', '#14B8A6'];
+  return colors[index % colors.length];
+}
+
+// Default destination images (fallback)
+const DEFAULT_IMAGES = [
+  'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?w=800',
+  'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?w=800',
+  'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?w=800',
+  'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800',
+  'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800',
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800',
+  'https://images.unsplash.com/photo-1548013146-72479768bada?w=800',
+  'https://images.unsplash.com/photo-1523833088655-3d45e3d6c9b0?w=800'
 ];
+
+// Get all unique destinations from activities
+const DESTINATIONS = Array.from(
+  new Set(localActivities.map(a => a.destination))
+)
+  .filter(Boolean)
+  .sort()
+  .map((name, index) => ({
+    id: name,
+    name: name,
+    tagline: `Explore ${name}`,
+    image: DEFAULT_IMAGES[index % DEFAULT_IMAGES.length],
+    icon: getDestinationIcon(name),
+    color: getDestinationColor(index)
+  }));
 
 // Category config
 const CATEGORIES = [

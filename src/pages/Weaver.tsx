@@ -19,6 +19,14 @@ import { ItineraryResults } from '@/components/weaver/ItineraryResults';
 import { toast } from '@/components/notifications/Toast';
 import { isOnline, onOnlineStatusChange } from '@/services/apiClient';
 
+// Available destinations in database
+const AVAILABLE_DESTINATIONS = [
+  'Goa', 'Manali', 'Pune', 'Delhi', 'Mumbai', 'Jaipur', 'Kerala', 'Shimla',
+  'Rishikesh', 'Varanasi', 'Udaipur', 'Agra', 'Coorg', 'Ooty', 'Munnar',
+  'Leh', 'Kodaikanal', 'Wayanad', 'Mysore', 'Ahmedabad', 'Hyderabad',
+  'Kolkata', 'Chennai', 'Bangalore', 'Andaman'
+];
+
 export function Weaver() {
   const [query, setQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -80,6 +88,17 @@ export function Weaver() {
       } catch (err) {
         console.error('Error generating itinerary:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+
+        // Check if destination is not in database
+        if (errorMessage.includes('not in our database') || errorMessage.includes('No data found')) {
+          setError(null);
+          toast.error(
+            'Destination Not Available',
+            `${extractFromQuery(query).destination || 'This destination'} is not in our database yet.`
+          );
+          return;
+        }
+
         if (errorMessage.includes('timed out')) {
           setError('The request is taking too long. Please try again or check your connection.');
           toast.error('Request Timeout', 'Generation timed out. Please try again.');
@@ -169,6 +188,29 @@ export function Weaver() {
                     <RefreshCw className="w-4 h-4" />
                     Try Again
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Available Destinations Info */}
+          {!error && (
+            <div className="mb-4 p-4 bg-eucalyptus/10 border border-eucalyptus/20 rounded-xl">
+              <div className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-eucalyptus flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-midnight font-medium mb-2">Available destinations in our database:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {AVAILABLE_DESTINATIONS.map(dest => (
+                      <button
+                        key={dest}
+                        onClick={() => setQuery(`${dest} trip`)}
+                        className="px-3 py-1 bg-white border border-eucalyptus/30 rounded-full text-sm text-midnight hover:bg-eucalyptus/10 transition-colors"
+                      >
+                        {dest}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
