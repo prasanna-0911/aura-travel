@@ -69,6 +69,12 @@ async function generateItineraryFromQuery(query, overrides = {}) {
   const queryTags = Array.from(new Set([...(nlpResult.tags || []), ...((overrides.tags || []).filter(Boolean))]));
 
   const destinationActivities = await Activity.find({ destination }).lean();
+
+  // If no activities in database, throw error to trigger RAG/external fallback
+  if (destinationActivities.length === 0) {
+    throw new Error(`No data found for "${destination}". This destination is not yet in our database. Try: Goa, Manali, Jaipur, Delhi, Mumbai, or other popular destinations.`);
+  }
+
   const scoredActivities = destinationActivities
     .map((activity) => ({ activity, score: calculateActivityScore(activity, queryTags) }))
     .sort((a, b) => b.score - a.score || (b.activity.user_rating || 0) - (a.activity.user_rating || 0));

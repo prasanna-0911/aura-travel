@@ -2,10 +2,39 @@ const nlp = require('compromise');
 const { ALL_TAGS, TAG_SYNONYMS } = require('../utils/tagDictionary');
 
 const DESTINATION_KEYWORDS = {
-  // India
+  // India - Major
   goa: ['goa', 'beach', 'beaches', 'coastal', 'seaside', 'ocean', 'sea', 'baga', 'calangute', 'panjim', 'arambol', 'anjuna', 'palolem'],
   manali: ['manali', 'mountain', 'mountains', 'hills', 'himalaya', 'himalayas', 'snow', 'valley', 'kullu', 'solang', 'rohtang'],
   pune: ['pune', 'city', 'urban', 'maharashtra', 'deccan', 'historical', 'shaniwar'],
+  // India - Spiritual/Pilgrimage
+  kedarnath: ['kedarnath', 'kedar', 'temple', 'pilgrimage', 'char dham', 'garhwal'],
+  rishikesh: ['rishikesh', 'yoga', 'spiritual', 'ganga', 'aarti', 'ashram'],
+  varanasi: ['varanasi', 'kashi', 'ganges', 'ghats', 'spiritual', 'prayagraj', 'allahabad'],
+  haridwar: ['haridwar', 'ganga', 'kumbh', 'mela'],
+  amritsar: ['amritsar', 'golden temple', 'harmandir'],
+  tirupati: ['tirupati', 'tirumala', 'balaji'],
+  shirdi: ['shirdi', 'sai baba'],
+  rameshwaram: ['rameshwaram', 'tamil nadu'],
+  jagannath: ['jagannath', 'puri', 'odisha'],
+  dwarka: ['dwarka', 'gujarat', 'krishna'],
+  // India - Hill Stations
+  shimla: ['shimla', 'kullu', 'manali', 'hill station', 'himachal'],
+  nainital: ['nainital', 'nanital', 'lakes', 'uttarakhand'],
+  mussoorie: ['mussoorie', 'dehradun', 'uttarakhand'],
+  darjeeling: ['darjeeling', 'sikkim', 'tea', 'himalaya'],
+  ooty: ['ooty', 'nilgiris', 'tamil nadu'],
+  munnar: ['munnar', 'kerala', 'tea gardens'],
+  coorg: ['coorg', 'karnataka', 'coffee'],
+  // India - Cities
+  delhi: ['delhi', 'new delhi', 'india gate', 'red fort'],
+  mumbai: ['mumbai', 'bombay', 'city', 'bollywood'],
+  bangalore: ['bangalore', 'bengaluru', 'silicon valley'],
+  kolkata: ['kolkata', 'calcutta', 'west bengal'],
+  hyderabad: ['hyderabad', 'charminar', 'biryani'],
+  chennai: ['chennai', 'madras', 'tamil nadu'],
+  jaipur: ['jaipur', 'rajasthan', 'pink city', 'amber fort'],
+  agra: ['agra', 'taj mahal', 'uttar pradesh'],
+  udaipur: ['udaipur', 'rajasthan', 'lake city'],
   // Asia
   bali: ['bali', 'denpasar', 'ubud', 'seminyak', 'kuta', 'nusa dua'],
   thailand: ['thailand', 'bangkok', 'phuket', 'krabi', 'chiang mai', 'pattaya', 'koh samui', 'koh phi phi'],
